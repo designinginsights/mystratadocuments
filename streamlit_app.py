@@ -42,24 +42,24 @@ else:
 
 
 
-    if uploaded_file and question:
-
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
+if uploaded_file and question:
+    messages = [
+        {
+            "role": "user",
+            "content": f"Here's a document: {document_text} \n\n---\n\n {question}",
+        }
+    ]
 
 try:
-    stream = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Consider switching to "gpt-3.5-turbo" if on "gpt-4"
+    stream = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
         messages=messages,
         stream=True,
     )
     st.write_stream(stream)
-
 except openai.RateLimitError:
     st.error("⚠️ You have hit your OpenAI rate limit. Please wait and try again later.")
+except openai.error.AuthenticationError:
+    st.error("⚠️ Invalid OpenAI API key. Please check and try again.")
+except Exception as e:
+    st.error(f"⚠️ An unexpected error occurred: {e}")
