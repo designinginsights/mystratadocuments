@@ -40,6 +40,8 @@ else:
         disabled=not uploaded_file,
     )
 
+
+
     if uploaded_file and question:
 
         # Process the uploaded file and question.
@@ -51,12 +53,13 @@ else:
             }
         ]
 
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True,
-        )
+try:
+    stream = client.chat.completions.create(
+        model="gpt-3.5-turbo",  # Consider switching to "gpt-3.5-turbo" if on "gpt-4"
+        messages=messages,
+        stream=True,
+    )
+    st.write_stream(stream)
 
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+except openai.RateLimitError:
+    st.error("⚠️ You have hit your OpenAI rate limit. Please wait and try again later.")
