@@ -32,7 +32,6 @@ else:
                     document_text += page.get_text()
         except Exception as e:
             st.error(f"Error reading PDF: {e}")
-    )
 
     # Ask the user for a question via `st.text_area`.
     question = st.text_area(
