@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+import fitz
 
 # Show title and description.
 st.title("📄 Document question answering")
@@ -19,9 +20,18 @@ else:
     # Create an OpenAI client.
     client = OpenAI(api_key=openai_api_key)
 
-    # Let the user upload a file via `st.file_uploader`.
-    uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
+    # Upload PDF file
+    uploaded_file = st.file_uploader("📤 Upload a PDF document", type=["pdf"])
+
+    # Extract text from PDF
+    document_text = ""
+    if uploaded_file is not None:
+        try:
+            with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
+                for page in doc:
+                    document_text += page.get_text()
+        except Exception as e:
+            st.error(f"Error reading PDF: {e}")
     )
 
     # Ask the user for a question via `st.text_area`.
