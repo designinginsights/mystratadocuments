@@ -1,31 +1,29 @@
 import streamlit as st
 from openai import OpenAI
-import fitz
+import fitz  # PyMuPDF
 
-# Show title and description.
-st.title("📄 Document question answering")
+# Show title and description
+st.title("📄 PDF Document Question Answering")
 st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
+    "Upload a PDF document and ask a question – GPT will answer using the content of the file! "
+    "You need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys)."
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
+# Ask for API key
+openai_api_key = st.text_input("🔑 OpenAI API Key", type="password")
+
 if not openai_api_key:
     st.info("Please add your OpenAI API key to continue.", icon="🗝️")
 else:
-
-    # Create an OpenAI client.
+    # Create client
     client = OpenAI(api_key=openai_api_key)
 
-    # Upload PDF file
+    # Upload PDF
     uploaded_file = st.file_uploader("📤 Upload a PDF document", type=["pdf"])
 
-    # Extract text from PDF
+    # Extract text
     document_text = ""
-    if uploaded_file is not None:
+    if uploaded_file:
         try:
             with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
                 for page in doc:
@@ -33,33 +31,35 @@ else:
         except Exception as e:
             st.error(f"Error reading PDF: {e}")
 
-    # Ask the user for a question via `st.text_area`.
+    # Ask a question
     question = st.text_area(
-        "Now ask a question about the document!",
+        "📝 Ask a question about the document!",
         placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
+        disabled=not document_text,
     )
 
+    # Process Q&A
+    if document_text and question:
+        messages = [
+            {
+                "role": "user",
+                "content": f"Here's a document:\n{document_text}\n\n---\n\n{question}",
+            }
+        ]
 
+        try:
+            # Generate answer
+            stream = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                stream=True,
+            )
+            st.write_stream(stream)
 
-if uploaded_file and question:
-    messages = [
-        {
-            "role": "user",
-            "content": f"Here's a document: {document_text} \n\n---\n\n {question}",
-        }
-    ]
-
-try:
-    stream = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        stream=True,
-    )
-    st.write_stream(stream)
-except openai.RateLimitError:
-    st.error("⚠️ You have hit your OpenAI rate limit. Please wait and try again later.")
-except openai.error.AuthenticationError:
-    st.error("⚠️ Invalid OpenAI API key. Please check and try again.")
-except Exception as e:
-    st.error(f"⚠️ An unexpected error occurred: {e}")
+        except Exception as e:
+            if "RateLimitError" in str(e):
+                st.error("⚠️ You have hit your OpenAI rate limit. Please wait and try again later.")
+            elif "AuthenticationError" in str(e):
+                st.error("⚠️ Invalid OpenAI API key. Please check and try again.")
+            else:
+                st.error(f"⚠️ An unexpected error occurred: {e}")
